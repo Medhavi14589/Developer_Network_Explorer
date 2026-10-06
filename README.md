@@ -147,36 +147,6 @@ The following is the **planned structure**. Update paths as implementation progr
 
 Because `data/` and `artifacts/` are excluded from Git, setup instructions must explain how to download or regenerate everything the application needs.
 
-## Setup and usage
-
-**Setup commands are pending verification.** Add the exact commands below after a teammate successfully runs them from a fresh clone.
-
-### 1. Clone the repository
-
-TODO: Add the actual repository URL and clone command.
-
-### 2. Create the environment and install dependencies
-
-TODO: Add the tested Python version, environment creation/activation commands, and dependency installation command. Include any platform-specific PyTorch/PyG steps.
-
-### 3. Prepare the dataset
-
-TODO: Add the tested download/preparation command and expected output paths.
-
-### 4. Train and evaluate
-
-TODO: Add the commands, in execution order, for shared split creation, baseline training, neural training, and final evaluation.
-
-### 5. Launch the application
-
-TODO: Add the verified Streamlit launch command and required artifact paths.
-
-### 6. Run the presentation demo
-
-TODO: Explain how to start from saved artifacts without retraining. Add artifact download instructions if files are distributed separately.
-
-**Environment verification:** TODO: Record operating system, CPU/GPU, verification date, and team member who checked the instructions.
-
 ## Evaluation
 
 All models will use the same stratified node split:
@@ -216,9 +186,9 @@ No test results are available yet. Replace the placeholders with measured values
 
 | Member | Primary responsibility |
 | --- | --- |
-| Abhyuday | Dataset loading and validation, shared split, and Logistic Regression |
-| Shreyas | MLP and GCN implementation, neural training, and saved checkpoints |
-| Medhavi | Shared evaluation, Streamlit application, integration, and presentation assembly |
+| Shreyas | Dataset loading and validation, shared split, and Logistic Regression |
+| Medhavi | MLP and GCN implementation, neural training, and saved checkpoints |
+| Abhyuday | Shared evaluation, Streamlit application, integration, and presentation assembly |
 | Everyone | Documentation for their component, code review, and demonstration rehearsal |
 
 Agree on the data interface before integrating: node features, edge indices, labels, node IDs, and shared split masks. Export predictions with node IDs so the application displays the correct results.
