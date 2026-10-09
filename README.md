@@ -114,9 +114,9 @@ Planned code files: `data.py`, `train_baseline.py`, `train_neural.py`, `evaluate
 
 | Member | Registration | Primary ownership |
 | --- | --- | --- |
-| **Abhyuday Gandhi** | 240905036 | Environment and `requirements.txt`, data pipeline, split and metadata, logistic regression, node-alignment checks |
-| **Shreyas Hegde** | 240905118 | MLP and GCN training, validation and checkpointing, training-history export, training and checkpoint-loading checks |
-| **Medhavi Ujjwal Mehta** | 240905122 | Evaluation module, Streamlit app (three views), integration with saved outputs, report and slides assembly |
+| **Shreyas** | 240905036 | Environment and `requirements.txt`, data pipeline, split and metadata, logistic regression, node-alignment checks |
+| **Medhavi** | 240905118 | MLP and GCN training, validation and checkpointing, training-history export, training and checkpoint-loading checks |
+| **Abhyuday** | 240905122 | Evaluation module, Streamlit app (three views), integration with saved outputs, report and slides assembly |
 
 ### Time budget (9 hours each, 27 total)
 
