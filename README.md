@@ -120,7 +120,7 @@ Planned code files: `data.py`, `train_baseline.py`, `train_neural.py`, `evaluate
 
 ### Time budget (9 hours each, 27 total)
 
-| Activity | Abhyuday | Shreyas | Medhavi |
+| Activity | Shreyas | Medhavi | Abhyuday |
 | --- | --- | --- | --- |
 | Setup and contracts | 1 h | 1 h | 1 h |
 | Data and splits | 2 h | - | - |
@@ -135,7 +135,7 @@ Planned code files: `data.py`, `train_baseline.py`, `train_neural.py`, `evaluate
 
 ### Handoffs
 
-| Day | Abhyuday | Shreyas | Medhavi |
+| Day | Shreyas | Medhavi | Abhyuday |
 | --- | --- | --- | --- |
 | 2 | Graph, masks, metadata | - | Evaluator and app skeleton |
 | 3 | Baseline predictions | Working neural runs | App reads real baseline outputs |
