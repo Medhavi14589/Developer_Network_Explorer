@@ -1,0 +1,20 @@
+{
+  "lr": {
+    "model": "StandardScaler + LogisticRegression",
+    "candidates": {
+      "plain": {
+        "C": 1.0,
+        "class_weight": null
+      },
+      "balanced": {
+        "C": 1.0,
+        "class_weight": "balanced"
+      }
+    },
+    "chosen": "plain",
+    "max_iter": 2000,
+    "seed": 42,
+    "uses_edges": false,
+    "scikit-learn": "1.9.1"
+  }
+}
