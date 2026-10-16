@@ -16,5 +16,55 @@
     "seed": 42,
     "uses_edges": false,
     "scikit-learn": "1.9.1"
+  },
+  "mlp": {
+    "model": "2-layer MLP",
+    "uses_edges": false,
+    "hidden": 32,
+    "dropout": 0.5,
+    "lr": 0.01,
+    "weight_decay": 0.0005,
+    "max_epochs": 200,
+    "patience": 20,
+    "optimizer": "Adam",
+    "selection": "best validation macro-F1 epoch",
+    "candidates": {
+      "plain": {
+        "class_weighted_loss": false
+      },
+      "weighted": {
+        "class_weighted_loss": true
+      }
+    },
+    "chosen": "weighted",
+    "best_epoch": 49,
+    "seed": 42,
+    "torch": "2.14.1+cpu",
+    "torch_geometric": "2.8.1"
+  },
+  "gcn": {
+    "model": "2-layer GCN (GCNConv)",
+    "uses_edges": true,
+    "hidden": 32,
+    "dropout": 0.5,
+    "lr": 0.01,
+    "weight_decay": 0.0005,
+    "max_epochs": 200,
+    "patience": 20,
+    "optimizer": "Adam",
+    "selection": "best validation macro-F1 epoch",
+    "candidates": {
+      "plain": {
+        "class_weighted_loss": false
+      },
+      "weighted": {
+        "class_weighted_loss": true
+      }
+    },
+    "chosen": "weighted",
+    "best_epoch": 33,
+    "seed": 42,
+    "torch": "2.14.1+cpu",
+    "torch_geometric": "2.8.1"
   }
 }
