@@ -1,8 +1,9 @@
-numpy
-pandas
-scikit-learn
-torch
-torch_geometric
-streamlit
-networkx
-matplotlib
+numpy==2.5.4
+scipy==1.18.1
+pandas==3.0.6
+scikit-learn==1.9.1
+torch==2.14.1
+torch-geometric==2.8.1
+streamlit==1.65.0
+networkx==3.7
+matplotlib==3.11.2

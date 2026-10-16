@@ -143,8 +143,26 @@ def save_model_results(model, preds, y, masks, extra=None):
     return all_metrics[model]
 
 
+def print_results_table():
+    """Markdown table of the saved test results, ready to paste into the README."""
+    names = {"lr": "Logistic regression", "mlp": "MLP", "gcn": "GCN"}
+    metrics = json.loads(METRICS_PATH.read_text())
+    print("| Model | Uses edges | Test accuracy | Test macro-F1 | ML recall |")
+    print("| --- | --- | --- | --- | --- |")
+    for key, name in names.items():
+        if key in metrics:
+            t = metrics[key]["test"]
+            print(f"| {name} | {'yes' if key == 'gcn' else 'no'} | {t['accuracy']:.4f} "
+                  f"| {t['macro_f1']:.4f} | {t['per_class']['ml']['recall']:.3f} |")
+
+
 # ---------------------------------------------------------------- self-test
 if __name__ == "__main__":
+    import sys
+    if "--table" in sys.argv:          # python evaluate.py --table
+        print_results_table()
+        sys.exit()
+
     # Tiny hand-made example so you can check the maths without real data.
     y_true = [0, 0, 0, 0, 1, 1]
     y_pred = [0, 0, 1, 0, 1, 0]
