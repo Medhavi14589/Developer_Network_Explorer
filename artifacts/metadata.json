@@ -1,0 +1,50 @@
+{
+  "data_source": "MUSAE GitHub dataset (Rozemberczki et al.), raw files from https://github.com/benedekrozemberczki/musae",
+  "num_nodes": 37700,
+  "num_features": 128,
+  "num_edge_entries": 578006,
+  "num_undirected_edges": 289003,
+  "num_isolated_nodes": 0,
+  "mean_degree": 15.33,
+  "class_counts": {
+    "web": 27961,
+    "ml": 9739
+  },
+  "class_mapping": {
+    "0": "web",
+    "1": "ml"
+  },
+  "node_id_convention": "node_id = row index in x and y (0 .. N-1) = id column in git_target.csv",
+  "seed": 42,
+  "split_fractions": {
+    "train": 0.6,
+    "val": 0.2,
+    "test": 0.2
+  },
+  "split_method": "sklearn train_test_split, stratified on y, two stages",
+  "split_counts": {
+    "train": {
+      "total": 22620,
+      "web": 16777,
+      "ml": 5843
+    },
+    "val": {
+      "total": 7540,
+      "web": 5592,
+      "ml": 1948
+    },
+    "test": {
+      "total": 7540,
+      "web": 5592,
+      "ml": 1948
+    }
+  },
+  "preprocessing": "binary feature lists -> 0/1 matrix -> TruncatedSVD to 128 dims (seed 42, unsupervised, labels not used); edges made undirected, duplicates and self-loops removed",
+  "svd_explained_variance": 0.6501,
+  "versions": {
+    "python": "3.14.6",
+    "numpy": "2.5.4",
+    "scikit-learn": "1.9.1",
+    "torch": "2.14.1+cpu"
+  }
+}
