@@ -11,10 +11,10 @@ Run from the project root:
 import json
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 import torch
 
@@ -23,11 +23,67 @@ MAX_NEIGHBOURS = 50          # README: neighbourhood capped at 50 nodes
 SAMPLE_SEED = 42             # fixed, so the same sample is drawn every time
 
 MODEL_NAMES = {"lr": "Logistic regression", "mlp": "MLP", "gcn": "GCN"}
-MODEL_USES = {"lr": "attributes only", "mlp": "attributes only", "gcn": "attributes + edges"}
+MODEL_USES = {"lr": "Attributes only", "mlp": "Attributes only", "gcn": "Attributes + edges"}
 PRED_COLS = {"lr": "lr_pred", "mlp": "mlp_pred", "gcn": "gcn_pred"}
-CLASS_COLOURS = {"web": "#3b82c4", "ml": "#e08a2c"}   # blue / orange, colour-blind friendly
 
-st.set_page_config(page_title="Developer Network Explorer", layout="wide")
+# Validated categorical palette (colour-blind safe, fixed order).
+CLASS_COLOURS = {"web": "#3987e5", "ml": "#d95926"}
+MODEL_COLOURS = {"lr": "#3987e5", "mlp": "#d95926", "gcn": "#199e70"}
+INK, INK_2, MUTED = "#f0efec", "#c3c2b7", "#898781"
+GRID, AXIS, EDGE = "#262624", "#383835", "#4a4a46"
+GOOD, CRITICAL = "#0ca30c", "#d03b3b"
+BLUES = [[0, "#1c2533"], [0.5, "#1c5cab"], [1, "#6da7ec"]]
+FONT = "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif"
+
+st.set_page_config(page_title="Developer Network Explorer", page_icon=":material/hub:",
+                   layout="wide")
+
+CSS = """
+<style>
+.block-container {max-width: 1240px; padding-top: 3.2rem; padding-bottom: 3rem;}
+h1, h2, h3 {letter-spacing: -0.02em;}
+.dne-hero {padding: 4px 0 18px 0;}
+.dne-eyebrow {font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #6da7ec; margin-bottom: 6px;}
+.dne-title {font-size: 2.1rem; font-weight: 700; color: #f0efec; line-height: 1.15;
+  letter-spacing: -0.025em; margin: 0;}
+.dne-sub {font-size: 1rem; color: #c3c2b7; margin-top: 8px; max-width: 760px; line-height: 1.55;}
+.dne-section {font-size: 1.05rem; font-weight: 600; color: #f0efec; margin: 0 0 2px 0;}
+.dne-note {font-size: 0.85rem; color: #898781; line-height: 1.5;}
+.dne-grid {display: grid; gap: 14px; margin-bottom: 18px;}
+.dne-card {background: #1a1a19; border: 1px solid #2c2c2a; border-radius: 12px; padding: 16px 18px;}
+.dne-card.accent {border-color: #3987e5; box-shadow: 0 0 0 1px #3987e5 inset;}
+.dne-label {font-size: 0.78rem; font-weight: 500; color: #898781; text-transform: uppercase;
+  letter-spacing: 0.05em;}
+.dne-value {font-size: 1.75rem; font-weight: 650; color: #f0efec; margin-top: 4px;
+  letter-spacing: -0.02em;}
+.dne-value.sm {font-size: 1.35rem;}
+.dne-meta {font-size: 0.85rem; color: #c3c2b7; margin-top: 4px;}
+.dne-pill {display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px;
+  border-radius: 999px; font-size: 0.8rem; font-weight: 500; border: 1px solid #383835;
+  background: #232322; color: #c3c2b7;}
+.dne-pill.good {background: #142a14; border-color: #1f4d1f; color: #5fd35f;}
+.dne-pill.bad {background: #331717; border-color: #5c2424; color: #f08a8a;}
+.dne-pill.info {background: #15243a; border-color: #1f3f69; color: #86b6ef;}
+.dne-dot {display: inline-block; width: 10px; height: 10px; border-radius: 50%;}
+.dne-bar {display: flex; gap: 2px; height: 12px; border-radius: 6px; overflow: hidden;
+  margin: 10px 0 8px 0;}
+.dne-bar > div:first-child {border-radius: 6px 0 0 6px;}
+.dne-bar > div:last-child {border-radius: 0 6px 6px 0;}
+.dne-legend {display: flex; gap: 18px; font-size: 0.85rem; color: #c3c2b7; flex-wrap: wrap;}
+.dne-table {width: 100%; border-collapse: collapse; font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;}
+.dne-table th {text-align: right; font-weight: 500; color: #898781; font-size: 0.78rem;
+  text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 8px;
+  border-bottom: 1px solid #2c2c2a;}
+.dne-table td {text-align: right; padding: 9px 8px; border-bottom: 1px solid #232322; color: #f0efec;}
+.dne-table th:first-child, .dne-table td:first-child {text-align: left;}
+.dne-table tr:last-child td {border-bottom: none;}
+.dne-footer {margin-top: 36px; padding-top: 14px; border-top: 1px solid #2c2c2a;
+  font-size: 0.8rem; color: #898781;}
+[data-testid="stMarkdownContainer"]:has(> .dne-note) {margin-bottom: 0;}
+</style>
+"""
 
 
 # ---------------------------------------------------------------- loading (cached)
@@ -65,81 +121,178 @@ def class_name(label, metadata):
     return metadata["class_mapping"][str(int(label))]
 
 
-def draw_graph(graph, colours, sizes, edge_alpha=0.3, labels=None):
-    fig, ax = plt.subplots(figsize=(7, 5.5))
+# ---------------------------------------------------------------- small UI helpers
+def html(markup):
+    st.markdown(markup, unsafe_allow_html=True)
+
+
+def hero(eyebrow, title, sub):
+    html(f'<div class="dne-hero"><div class="dne-eyebrow">{eyebrow}</div>'
+         f'<div class="dne-title">{title}</div><div class="dne-sub">{sub}</div></div>')
+
+
+def section(title, note=None):
+    html(f'<div class="dne-section">{title}</div>'
+         + (f'<div class="dne-note" style="margin-bottom:8px">{note}</div>' if note else ""))
+
+
+def card(label, value, meta="", small=False, accent=False):
+    return (f'<div class="dne-card{" accent" if accent else ""}"><div class="dne-label">{label}</div>'
+            f'<div class="dne-value{" sm" if small else ""}">{value}</div>'
+            + (f'<div class="dne-meta">{meta}</div>' if meta else "") + "</div>")
+
+
+def card_row(cards):
+    html(f'<div class="dne-grid" style="grid-template-columns: repeat({len(cards)}, minmax(0, 1fr))">'
+         + "".join(cards) + "</div>")
+
+
+def dot(colour):
+    return f'<span class="dne-dot" style="background:{colour}"></span>'
+
+
+def proportion_bar(parts):
+    """parts: list of (name, count, colour). A thin 100% bar with a legend underneath."""
+    total = sum(c for _, c, _ in parts)
+    bar = "".join(f'<div style="flex:{c};background:{col}" title="{n}: {c:,}"></div>'
+                  for n, c, col in parts)
+    legend = "".join(f'<span>{dot(col)} <b style="color:{INK}">{n}</b> {c:,} '
+                     f'<span style="color:{MUTED}">({c / total:.0%})</span></span>'
+                     for n, c, col in parts)
+    return f'<div class="dne-bar">{bar}</div><div class="dne-legend">{legend}</div>'
+
+
+def footer():
+    html('<div class="dne-footer">MUSAE GitHub Web &amp; ML developers (Rozemberczki, Allen and '
+         'Sarkar). Fixed dataset and node IDs, no live GitHub lookup. Educational prototype, '
+         'not a hiring or assessment tool.</div>')
+
+
+def style_fig(fig, height):
+    fig.update_layout(
+        height=height, margin=dict(l=8, r=8, t=8, b=8),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family=FONT, size=12, color=INK_2),
+        hoverlabel=dict(bgcolor="#232322", bordercolor="#383835", font=dict(family=FONT, color=INK)),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
+                    font=dict(size=12, color=INK_2), title_text=""),
+    )
+    fig.update_xaxes(gridcolor=GRID, linecolor=AXIS, zeroline=False, tickfont=dict(color=MUTED))
+    fig.update_yaxes(gridcolor=GRID, linecolor=AXIS, zeroline=False, tickfont=dict(color=MUTED))
+    return fig
+
+
+def show(fig):
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+
+
+def network_figure(graph, label_of, degree_of, centre=None, height=460):
+    """Interactive node-link drawing, coloured by recorded label, with hover details."""
     pos = nx.spring_layout(graph, seed=SAMPLE_SEED)
-    nx.draw_networkx_edges(graph, pos, ax=ax, alpha=edge_alpha, width=0.8)
-    nx.draw_networkx_nodes(graph, pos, ax=ax, node_color=colours, node_size=sizes,
-                           edgecolors="white", linewidths=0.8)
-    if labels:
-        nx.draw_networkx_labels(graph, pos, labels=labels, ax=ax, font_size=8)
-    handles = [plt.Line2D([], [], marker="o", ls="", color=c, label=k, markersize=9)
-               for k, c in CLASS_COLOURS.items()]
-    ax.legend(handles=handles, title="Recorded label", loc="upper right", frameon=False)
-    ax.axis("off")
-    fig.tight_layout()
+    ex, ey = [], []
+    for u, v in graph.edges:
+        ex += [pos[u][0], pos[v][0], None]
+        ey += [pos[u][1], pos[v][1], None]
+    fig = go.Figure(go.Scatter(x=ex, y=ey, mode="lines", hoverinfo="skip", showlegend=False,
+                               line=dict(color=EDGE, width=0.8)))
+    for cls, colour in CLASS_COLOURS.items():
+        nodes = [v for v in graph.nodes if label_of[v] == cls and v != centre]
+        fig.add_trace(go.Scatter(
+            x=[pos[v][0] for v in nodes], y=[pos[v][1] for v in nodes], mode="markers", name=cls,
+            marker=dict(size=10, color=colour, line=dict(color="#1a1a19", width=1.5)),
+            customdata=[[v, degree_of(v)] for v in nodes],
+            hovertemplate=f"<b>Developer %{{customdata[0]}}</b><br>Recorded label: {cls}"
+                          "<br>Connections: %{customdata[1]:,}<extra></extra>"))
+    if centre is not None:
+        fig.add_trace(go.Scatter(
+            x=[pos[centre][0]], y=[pos[centre][1]], mode="markers+text", name="selected developer",
+            text=[f"<b>{centre}</b>"], textposition="top center", textfont=dict(color=INK, size=12),
+            marker=dict(size=24, color=CLASS_COLOURS[label_of[centre]], line=dict(color=INK, width=2)),
+            hovertemplate=f"<b>Developer {centre}</b><br>Recorded label: {label_of[centre]}"
+                          f"<br>Connections: {degree_of(centre):,}<extra></extra>"))
+    style_fig(fig, height)
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False, scaleanchor="x")
     return fig
 
 
 # ---------------------------------------------------------------- view 1
-def network_overview(metadata, preds, dst, start):
-    st.header("Network overview")
-    st.write("Numbers below come from the loaded data files, not from documentation.")
+def network_overview():
+    metadata, _, preds, _ = load_tables()
+    dst, start = load_neighbours()
+    hero("MUSAE GitHub dataset", "Network overview",
+         "A graph of GitHub developers linked by mutual follows. Each developer is recorded as a "
+         "<b>web</b> or <b>machine learning</b> developer. All figures below are read from the "
+         "loaded data files.")
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Developers (nodes)", f"{metadata['num_nodes']:,}")
-    c2.metric("Connections (edges)", f"{metadata['num_undirected_edges']:,}")
-    c3.metric("Features per developer", metadata["num_features"])
-    c4.metric("Average connections", metadata["mean_degree"])
+    card_row([
+        card("Developers", f"{metadata['num_nodes']:,}", "nodes in the graph"),
+        card("Connections", f"{metadata['num_undirected_edges']:,}", "mutual-follower edges"),
+        card("Features", metadata["num_features"], "per developer, after SVD"),
+        card("Avg. connections", f"{metadata['mean_degree']:.1f}", "per developer"),
+    ])
 
-    left, right = st.columns(2)
-    with left:
-        st.subheader("Class distribution")
-        counts = pd.Series(metadata["class_counts"], name="developers")
-        st.bar_chart(counts, color="#3b82c4")
-        share = counts / counts.sum()
-        st.caption(" · ".join(f"{k}: {v:,} ({share[k]:.0%})" for k, v in counts.items()))
-    with right:
-        st.subheader("Train / validation / test split")
-        split = pd.DataFrame(metadata["split_counts"]).T
-        split.index.name = "split"
-        st.dataframe(split, width="stretch")
-        st.caption(f"Stratified 60/20/20, seed {metadata['seed']}. "
-                   "Every model uses these same masks.")
+    counts = metadata["class_counts"]
+    left, right = st.columns([1, 1.15], gap="medium")
+    with left, st.container(border=True):
+        section("Class balance", "Share of developers by recorded label.")
+        html(proportion_bar([(k, v, CLASS_COLOURS[k]) for k, v in
+                             sorted(counts.items(), key=lambda kv: -kv[1])]))
+        html(f'<div class="dne-note" style="margin-top:14px">The classes are imbalanced, so the '
+             f'model comparison reports <b>macro-F1</b>, which weights both classes equally, '
+             f'alongside accuracy.</div>')
+    with right, st.container(border=True):
+        section("Train / validation / test split",
+                f"Stratified 60/20/20, seed {metadata['seed']}. Every model uses the same masks.")
+        rows = "".join(
+            f"<tr><td>{name}</td><td>{c['total']:,}</td><td>{c['web']:,}</td><td>{c['ml']:,}</td>"
+            f"<td>{c['total'] / metadata['num_nodes']:.0%}</td></tr>"
+            for name, c in metadata["split_counts"].items())
+        html(f'<table class="dne-table"><tr><th>Split</th><th>Total</th>'
+             f'<th>{dot(CLASS_COLOURS["web"])} web</th><th>{dot(CLASS_COLOURS["ml"])} ml</th>'
+             f'<th>Share</th></tr>{rows}</table>')
 
-    st.subheader("A small sample of the graph")
-    size = st.slider("Nodes in sample", 20, 150, 60, step=10)
-    # breadth-first walk from a fixed random developer, so the sample is connected
-    rng = np.random.default_rng(SAMPLE_SEED)
-    seed_node = int(rng.integers(metadata["num_nodes"]))
-    picked, frontier = [seed_node], [seed_node]
-    seen = {seed_node}
-    while frontier and len(picked) < size:
-        nxt = []
-        for v in frontier:
-            for u in neighbours_of(v, dst, start):
-                u = int(u)
-                if u not in seen and len(picked) < size:
-                    seen.add(u)
-                    picked.append(u)
-                    nxt.append(u)
-        frontier = nxt
-    g = nx.Graph()
-    g.add_nodes_from(picked)
-    for v in picked:
-        g.add_edges_from((v, int(u)) for u in neighbours_of(v, dst, start) if int(u) in seen)
-    labels = preds.set_index("node_id").loc[picked, "true_label"]
-    colours = [CLASS_COLOURS[class_name(labels[v], metadata)] for v in g.nodes]
-    st.pyplot(draw_graph(g, colours, 60), width="content")
-    st.caption(f"{len(picked)} of {metadata['num_nodes']:,} developers, reached by walking "
-               f"outward from developer {seed_node}. A sample for illustration only.")
+    with st.container(border=True):
+        top_l, top_r = st.columns([3, 1.2])
+        with top_l:
+            section("A connected sample of the graph",
+                    "Hover over a developer to see their label and number of connections.")
+        with top_r:
+            size = st.slider("Developers in sample", 20, 150, 60, step=10)
+        # breadth-first walk from a fixed random developer, so the sample is connected
+        rng = np.random.default_rng(SAMPLE_SEED)
+        seed_node = int(rng.integers(metadata["num_nodes"]))
+        picked, frontier = [seed_node], [seed_node]
+        seen = {seed_node}
+        while frontier and len(picked) < size:
+            nxt = []
+            for v in frontier:
+                for u in neighbours_of(v, dst, start):
+                    u = int(u)
+                    if u not in seen and len(picked) < size:
+                        seen.add(u)
+                        picked.append(u)
+                        nxt.append(u)
+            frontier = nxt
+        g = nx.Graph()
+        g.add_nodes_from(picked)
+        for v in picked:
+            g.add_edges_from((v, int(u)) for u in neighbours_of(v, dst, start) if int(u) in seen)
+        true = preds.set_index("node_id")["true_label"]
+        label_of = {v: class_name(true[v], metadata) for v in picked}
+        show(network_figure(g, label_of, lambda v: start[v + 1] - start[v], height=520))
+        html(f'<div class="dne-note">{len(picked)} of {metadata["num_nodes"]:,} developers, '
+             f'reached by walking outward from developer {seed_node}. For illustration only.</div>')
+    footer()
 
 
 # ---------------------------------------------------------------- view 2
-def developer_explorer(metadata, preds, dst, start):
-    st.header("Developer explorer")
-    st.write("Pick a developer who was **held out for testing**: no model saw their label "
-             "during training.")
+def developer_explorer():
+    metadata, _, preds, _ = load_tables()
+    dst, start = load_neighbours()
+    hero("Held-out test developers", "Developer explorer",
+         "Pick a developer whose label no model saw during training, and compare what each "
+         "model predicted with the recorded label.")
 
     test = preds[preds["split"] == "test"].copy()
     available = [m for m in PRED_COLS if PRED_COLS[m] in test]
@@ -147,26 +300,43 @@ def developer_explorer(metadata, preds, dst, start):
         st.warning("No model predictions found yet. Run the training scripts first.")
         return
 
-    only_disagree = st.checkbox("Only show developers where the models disagree")
-    if only_disagree and len(available) > 1:
-        cols = [PRED_COLS[m] for m in available]
-        test = test[test[cols].nunique(axis=1) > 1]
-    st.caption(f"{len(test):,} test developers to choose from.")
-    if test.empty:
-        return
+    with st.container(border=True):
+        c1, c2 = st.columns([2.2, 1], vertical_alignment="bottom")
+        with c2:
+            only_disagree = st.toggle("Only where models disagree")
+        if only_disagree and len(available) > 1:
+            cols = [PRED_COLS[m] for m in available]
+            test = test[test[cols].nunique(axis=1) > 1]
+        with c1:
+            if test.empty:
+                st.info("No test developers match this filter.")
+                return
+            node = st.selectbox(f"Test developer · {len(test):,} available",
+                                test["node_id"].tolist())
 
-    node = st.selectbox("Test developer (node ID)", test["node_id"].tolist())
     row = test.set_index("node_id").loc[node]
     truth = class_name(row["true_label"], metadata)
+    guesses = {m: class_name(row[PRED_COLS[m]], metadata) for m in available}
+    n_right = sum(g == truth for g in guesses.values())
+    agree = len(set(guesses.values())) == 1
 
-    st.subheader(f"Developer {node}")
-    cols = st.columns(len(available) + 1)
-    cols[0].metric("Recorded label", truth)
-    for col, m in zip(cols[1:], available):
-        guess = class_name(row[PRED_COLS[m]], metadata)
-        col.metric(MODEL_NAMES[m], guess,
-                   delta="correct" if guess == truth else "wrong",
-                   delta_color="normal" if guess == truth else "inverse")
+    html(f'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 0 12px 0">'
+         f'<span class="dne-title" style="font-size:1.5rem">Developer {node}</span>'
+         f'<span class="dne-pill">{dot(CLASS_COLOURS[truth])} Recorded label: <b>{truth}</b></span>'
+         f'<span class="dne-pill info">{n_right} of {len(guesses)} models correct</span>'
+         f'<span class="dne-pill">{"Models agree" if agree else "Models disagree"}</span></div>')
+
+    cards = [card("Recorded label", f'{dot(CLASS_COLOURS[truth])} {truth}',
+                  "from the dataset", small=True)]
+    for m, guess in guesses.items():
+        ok = guess == truth
+        status = ('<span class="dne-pill good">✓ Correct</span>' if ok
+                  else '<span class="dne-pill bad">✕ Incorrect</span>')
+        cards.append(card(MODEL_NAMES[m], f'{dot(CLASS_COLOURS[guess])} {guess}',
+                          f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                          f'gap:8px;margin-top:4px"><span>{MODEL_USES[m]}</span>{status}</div>',
+                          small=True))
+    card_row(cards)
 
     # one-hop neighbourhood, capped
     nbrs = neighbours_of(node, dst, start)
@@ -176,102 +346,165 @@ def developer_explorer(metadata, preds, dst, start):
         rng = np.random.default_rng(SAMPLE_SEED + int(node))
         shown = np.sort(rng.choice(nbrs, MAX_NEIGHBOURS, replace=False))
 
-    st.subheader("One-hop neighbourhood")
     if total == 0:
         st.info("This developer has no connections.")
+        footer()
         return
     all_labels = preds.set_index("node_id")["true_label"]
     nbr_classes = [class_name(all_labels[int(u)], metadata) for u in nbrs]
-    ml_share = nbr_classes.count("ml") / total
+    n_ml = nbr_classes.count("ml")
 
     g = nx.Graph()
     g.add_node(int(node))
     g.add_edges_from((int(node), int(u)) for u in shown)
-    colours = [CLASS_COLOURS[class_name(all_labels[v], metadata)] for v in g.nodes]
-    sizes = [500 if v == node else 90 for v in g.nodes]
+    label_of = {v: class_name(all_labels[v], metadata) for v in g.nodes}
 
-    left, right = st.columns([2, 1])
-    with left:
-        st.pyplot(draw_graph(g, colours, sizes, edge_alpha=0.4, labels={int(node): str(node)}),
-                  width="content")
+    left, right = st.columns([2.2, 1], gap="medium")
+    with left, st.container(border=True):
+        section("One-hop neighbourhood",
+                f"Showing a random sample of {MAX_NEIGHBOURS} of {total:,} neighbours."
+                if total > MAX_NEIGHBOURS else "Every direct connection of this developer.")
+        show(network_figure(g, label_of, lambda v: start[v + 1] - start[v], centre=int(node)))
     with right:
-        st.metric("Connections", total)
-        st.metric("Neighbours recorded as ML", f"{ml_share:.0%}")
-        if total > MAX_NEIGHBOURS:
-            st.warning(f"Showing a random sample of {MAX_NEIGHBOURS} of {total} neighbours.")
-        st.caption("This picture is context, not an explanation of any prediction. "
-                   "The GCN uses the full graph, including neighbours of neighbours.")
+        html(card("Connections", f"{total:,}", "mutual followers"))
+        html(f'<div class="dne-card" style="margin-top:14px"><div class="dne-label">Neighbour labels'
+             f'</div><div class="dne-value">{n_ml / total:.0%} <span style="font-size:1rem;'
+             f'font-weight:500;color:{INK_2}">ml</span></div>'
+             + proportion_bar([("web", total - n_ml, CLASS_COLOURS["web"]),
+                               ("ml", n_ml, CLASS_COLOURS["ml"])]) + "</div>")
+        html('<div class="dne-note" style="margin-top:14px">This picture is context, not an '
+             'explanation of any prediction. The GCN uses the full graph, including neighbours '
+             'of neighbours.</div>')
+    footer()
 
 
 # ---------------------------------------------------------------- view 3
-def model_comparison(metadata, metrics, history):
-    st.header("Model comparison")
-    st.write("All scores are on the **test** developers, from one fixed split and seed. "
-             "They do not show that one model is better in general.")
+def model_comparison():
+    _, metrics, _, history = load_tables()
+    hero("Test-set results", "Model comparison",
+         "Scores on the held-out test developers from one fixed split and seed. They do not show "
+         "that one model is better in general.")
 
     models = [m for m in MODEL_NAMES if m in metrics]
     if not models:
         st.warning("No metrics found yet. Run the training scripts first.")
         return
 
-    summary = pd.DataFrame([{
-        "Model": MODEL_NAMES[m],
-        "Uses": MODEL_USES[m],
-        "Accuracy": metrics[m]["test"]["accuracy"],
-        "Macro-F1": metrics[m]["test"]["macro_f1"],
-        "Chosen setting": metrics[m].get("chosen_config", "-"),
-    } for m in models]).set_index("Model")
-    st.dataframe(summary.style.format({"Accuracy": "{:.4f}", "Macro-F1": "{:.4f}"}),
-                 width="stretch")
-
-    st.subheader("Per-class results")
-    rows = []
+    best = max(models, key=lambda m: metrics[m]["test"]["macro_f1"])
+    cards = []
     for m in models:
-        for cls, v in metrics[m]["test"]["per_class"].items():
-            rows.append({"Model": MODEL_NAMES[m], "Class": cls, "Precision": v["precision"],
-                         "Recall": v["recall"], "F1": v["f1"], "Support": v["support"]})
-    st.dataframe(pd.DataFrame(rows).set_index(["Model", "Class"])
-                 .style.format({"Precision": "{:.3f}", "Recall": "{:.3f}", "F1": "{:.3f}"}),
-                 width="stretch")
-    st.caption("Recall for ml = share of ML developers the model found.")
+        t = metrics[m]["test"]
+        tag = ' · <span class="dne-pill info" style="padding:1px 8px">Highest macro-F1</span>' \
+            if m == best else ""
+        cards.append(
+            f'<div class="dne-card{" accent" if m == best else ""}">'
+            f'<div class="dne-label">{dot(MODEL_COLOURS[m])} {MODEL_NAMES[m]}</div>'
+            f'<div class="dne-meta" style="margin-top:2px">{MODEL_USES[m]}{tag}</div>'
+            f'<div style="display:flex;gap:28px;margin-top:12px">'
+            f'<div><div class="dne-label" style="text-transform:none">Macro-F1</div>'
+            f'<div class="dne-value">{t["macro_f1"]:.3f}</div></div>'
+            f'<div><div class="dne-label" style="text-transform:none">Accuracy</div>'
+            f'<div class="dne-value" style="color:{INK_2}">{t["accuracy"]:.3f}</div></div></div>'
+            f'<div class="dne-meta" style="margin-top:8px;color:{MUTED}">Chosen setting: '
+            f'{metrics[m].get("chosen_config", "-")}</div></div>')
+    card_row(cards)
 
-    left, right = st.columns(2)
-    with left:
-        st.subheader("Confusion matrix")
-        m = st.selectbox("Model", models, format_func=MODEL_NAMES.get)
+    with st.container(border=True):
+        h_l, h_r = st.columns([2, 1.3], vertical_alignment="bottom")
+        with h_l:
+            section("Per-class results", "Recall for ml is the share of ML developers a model found.")
+        with h_r:
+            metric = st.segmented_control("Metric", ["F1", "Precision", "Recall"], default="Recall",
+                                          label_visibility="collapsed") or "Recall"
+        rows = []
+        for m in models:
+            for cls, v in metrics[m]["test"]["per_class"].items():
+                rows.append({"Model": MODEL_NAMES[m], "key": m, "Class": cls,
+                             "Precision": v["precision"], "Recall": v["recall"], "F1": v["f1"],
+                             "Support": v["support"]})
+        per_class = pd.DataFrame(rows)
+        fig = go.Figure()
+        for m in models:
+            d = per_class[per_class["key"] == m]
+            fig.add_trace(go.Bar(
+                x=d["Class"], y=d[metric], name=MODEL_NAMES[m], marker_color=MODEL_COLOURS[m],
+                marker_line=dict(color="#1a1a19", width=2), marker_cornerradius=4,
+                text=[f"{v:.2f}" for v in d[metric]], textposition="outside",
+                textfont=dict(color=INK_2, size=11), cliponaxis=False,
+                hovertemplate=f"<b>{MODEL_NAMES[m]}</b><br>Class %{{x}}<br>{metric}: "
+                              "%{y:.3f}<extra></extra>"))
+        style_fig(fig, 340)
+        fig.update_layout(barmode="group", bargap=0.55, bargroupgap=0.12)
+        fig.update_yaxes(range=[0, 1.08], tickformat=".1f")
+        fig.update_xaxes(showgrid=False, tickfont=dict(color=INK, size=13))
+        show(fig)
+        with st.expander("Show full table"):
+            st.dataframe(per_class.drop(columns="key").set_index(["Model", "Class"])
+                         .style.format({"Precision": "{:.3f}", "Recall": "{:.3f}", "F1": "{:.3f}"}),
+                         width="stretch")
+
+    left, right = st.columns(2, gap="medium")
+    with left, st.container(border=True):
+        h_l, h_r = st.columns([1, 1.6], vertical_alignment="bottom")
+        with h_l:
+            section("Confusion matrix")
+        with h_r:
+            m = st.segmented_control("Model", models, format_func=MODEL_NAMES.get, default=best,
+                                     label_visibility="collapsed") or best
         cm = np.array(metrics[m]["test"]["confusion_matrix"])
         order = metrics[m]["test"]["class_order"]
-        fig, ax = plt.subplots(figsize=(4.2, 3.6))
-        ax.imshow(cm, cmap="Blues")
-        for i in range(cm.shape[0]):
-            for j in range(cm.shape[1]):
-                ax.text(j, i, f"{cm[i, j]:,}", ha="center", va="center",
-                        color="white" if cm[i, j] > cm.max() / 2 else "black")
-        ax.set_xticks(range(len(order)), [f"pred {c}" for c in order])
-        ax.set_yticks(range(len(order)), [f"true {c}" for c in order])
-        ax.set_title(MODEL_NAMES[m])
-        fig.tight_layout()
-        st.pyplot(fig, width="content")
+        row_share = cm / cm.sum(axis=1, keepdims=True)
+        text = [[f"<b>{cm[i, j]:,}</b><br>{row_share[i, j]:.0%} of true {order[i]}"
+                 for j in range(len(order))] for i in range(len(order))]
+        fig = go.Figure(go.Heatmap(
+            z=row_share, x=[f"predicted {c}" for c in order], y=[f"true {c}" for c in order],
+            colorscale=BLUES, zmin=0, zmax=1, showscale=False, xgap=3, ygap=3,
+            text=text, texttemplate="%{text}", textfont=dict(size=13),
+            customdata=cm, hovertemplate="%{y} → %{x}<br>%{customdata:,} developers<extra></extra>"))
+        style_fig(fig, 320)
+        fig.update_yaxes(autorange="reversed", showgrid=False, tickfont=dict(color=INK, size=12))
+        fig.update_xaxes(showgrid=False, side="top", tickfont=dict(color=INK, size=12))
+        show(fig)
+        html('<div class="dne-note">Shading shows the share of each true class. '
+             'The diagonal is correct predictions.</div>')
 
-    with right:
-        st.subheader("Neural training curves")
+    with right, st.container(border=True):
+        section("Neural training curves",
+                "MLP and GCN share every setting. The only difference is that the GCN uses edges.")
         if history.empty:
             st.info("history.csv not found. Run train_neural.py.")
         else:
-            h = history.copy()
-            h["model"] = h["model"].map(MODEL_NAMES)
-            st.caption("Validation macro-F1 per epoch")
-            st.line_chart(h.pivot(index="epoch", columns="model", values="val_macro_f1"))
-            st.caption("Training loss per epoch")
-            st.line_chart(h.pivot(index="epoch", columns="model", values="train_loss"))
-            st.caption("Each model keeps the epoch with the best validation macro-F1, "
-                       "then stops after 20 epochs without improvement.")
+            curve = st.segmented_control("Curve", ["Validation macro-F1", "Training loss"],
+                                         default="Validation macro-F1",
+                                         label_visibility="collapsed") or "Validation macro-F1"
+            col = "val_macro_f1" if curve == "Validation macro-F1" else "train_loss"
+            fig = go.Figure()
+            for key in [k for k in ("mlp", "gcn") if k in set(history["model"])]:
+                h = history[history["model"] == key]
+                fig.add_trace(go.Scatter(
+                    x=h["epoch"], y=h[col], mode="lines", name=MODEL_NAMES[key],
+                    line=dict(color=MODEL_COLOURS[key], width=2),
+                    hovertemplate=f"<b>{MODEL_NAMES[key]}</b> · epoch %{{x}}<br>{curve}: "
+                                  "%{y:.3f}<extra></extra>"))
+                if col == "val_macro_f1":
+                    b = h.loc[h[col].idxmax()]
+                    fig.add_trace(go.Scatter(
+                        x=[b["epoch"]], y=[b[col]], mode="markers", showlegend=False,
+                        marker=dict(size=9, color=MODEL_COLOURS[key], line=dict(color="#1a1a19", width=2)),
+                        hovertemplate=f"<b>{MODEL_NAMES[key]} best epoch</b> %{{x}}<br>"
+                                      "Validation macro-F1: %{y:.3f}<extra></extra>"))
+            style_fig(fig, 262)
+            fig.update_layout(hovermode="x unified")
+            fig.update_xaxes(title_text="Epoch", title_font=dict(color=MUTED, size=11))
+            show(fig)
+            html('<div class="dne-note">Each model keeps the epoch with the best validation '
+                 'macro-F1 (marked), then stops after 20 epochs without improvement.</div>')
+    footer()
 
 
 # ---------------------------------------------------------------- page
 def main():
-    st.title("Developer Network Explorer")
-
+    html(CSS)
     needed = ["metadata.json", "predictions.csv", "metrics.json", "graph_data.pt"]
     missing = [f for f in needed if not (ART_DIR / f).exists()]
     if missing:
@@ -279,22 +512,12 @@ def main():
                  + ". Run data.py, train_baseline.py and train_neural.py first.")
         st.stop()
 
-    metadata, metrics, preds, history = load_tables()
-    dst, start = load_neighbours()
-
-    view = st.sidebar.radio("View", ["Network overview", "Developer explorer", "Model comparison"])
-    st.sidebar.markdown("---")
-    st.sidebar.caption(
-        "GitHub web vs ML developers (MUSAE dataset). Fixed data, fixed node IDs, "
-        "no live GitHub lookup. Educational prototype, not a hiring tool."
-    )
-
-    if view == "Network overview":
-        network_overview(metadata, preds, dst, start)
-    elif view == "Developer explorer":
-        developer_explorer(metadata, preds, dst, start)
-    else:
-        model_comparison(metadata, metrics, history)
+    page = st.navigation([
+        st.Page(network_overview, title="Network overview", icon=":material/hub:", default=True),
+        st.Page(developer_explorer, title="Developer explorer", icon=":material/person_search:"),
+        st.Page(model_comparison, title="Model comparison", icon=":material/insights:"),
+    ], position="top")
+    page.run()
 
 
 main()

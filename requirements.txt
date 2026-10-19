@@ -7,3 +7,4 @@ torch-geometric==2.8.1
 streamlit==1.65.0
 networkx==3.7
 matplotlib==3.11.2
+plotly==7.1.0
