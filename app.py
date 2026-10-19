@@ -27,60 +27,65 @@ MODEL_USES = {"lr": "Attributes only", "mlp": "Attributes only", "gcn": "Attribu
 PRED_COLS = {"lr": "lr_pred", "mlp": "mlp_pred", "gcn": "gcn_pred"}
 
 # Validated categorical palette (colour-blind safe, fixed order).
-CLASS_COLOURS = {"web": "#3987e5", "ml": "#d95926"}
-MODEL_COLOURS = {"lr": "#3987e5", "mlp": "#d95926", "gcn": "#199e70"}
-INK, INK_2, MUTED = "#f0efec", "#c3c2b7", "#898781"
-GRID, AXIS, EDGE = "#262624", "#383835", "#4a4a46"
+CLASS_COLOURS = {"web": "#9085e9", "ml": "#d95926"}
+CLASS_LABELS = {"web": "Web", "ml": "ML"}            # display names for the data keys
+MODEL_COLOURS = {"lr": "#9085e9", "mlp": "#d95926", "gcn": "#199e70"}
+INK, INK_2, MUTED = "#ede9f7", "#b6aec8", "#847b97"
+GRID, AXIS, EDGE = "#211c2d", "#342c46", "#463d5c"
 GOOD, CRITICAL = "#0ca30c", "#d03b3b"
-BLUES = [[0, "#1c2533"], [0.5, "#1c5cab"], [1, "#6da7ec"]]
-FONT = "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif"
+SEQ = [[0, "#1d1830"], [1, "#6a55d0"]]   # violet ramp, dark enough for light text on every cell
+FONT = "Manrope, system-ui, -apple-system, 'Segoe UI', sans-serif"
 
 st.set_page_config(page_title="Developer Network Explorer", page_icon=":material/hub:",
                    layout="wide")
 
 CSS = """
 <style>
+[data-testid="stApp"] {background: radial-gradient(900px 500px at 15% -5%, rgba(139,92,246,0.16), transparent 65%),
+  radial-gradient(700px 400px at 100% 0%, rgba(99,60,200,0.10), transparent 60%), #0b0910;}
+[data-testid="stHeader"] {background: rgba(11,9,16,0.75); backdrop-filter: blur(8px);}
+.dne-title, .dne-value, .dne-section {font-family: 'Space Grotesk', Manrope, sans-serif;}
 .block-container {max-width: 1240px; padding-top: 3.2rem; padding-bottom: 3rem;}
 h1, h2, h3 {letter-spacing: -0.02em;}
 .dne-hero {padding: 4px 0 18px 0;}
 .dne-eyebrow {font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em;
-  text-transform: uppercase; color: #6da7ec; margin-bottom: 6px;}
-.dne-title {font-size: 2.1rem; font-weight: 700; color: #f0efec; line-height: 1.15;
+  text-transform: uppercase; color: #b4a9f5; margin-bottom: 6px;}
+.dne-title {font-size: 2.1rem; font-weight: 700; color: #ede9f7; line-height: 1.15;
   letter-spacing: -0.025em; margin: 0;}
-.dne-sub {font-size: 1rem; color: #c3c2b7; margin-top: 8px; max-width: 760px; line-height: 1.55;}
-.dne-section {font-size: 1.05rem; font-weight: 600; color: #f0efec; margin: 0 0 2px 0;}
-.dne-note {font-size: 0.85rem; color: #898781; line-height: 1.5;}
+.dne-sub {font-size: 1rem; color: #b6aec8; margin-top: 8px; max-width: 760px; line-height: 1.55;}
+.dne-section {font-size: 1.05rem; font-weight: 600; color: #ede9f7; margin: 0 0 2px 0;}
+.dne-note {font-size: 0.85rem; color: #847b97; line-height: 1.5;}
 .dne-grid {display: grid; gap: 14px; margin-bottom: 18px;}
-.dne-card {background: #1a1a19; border: 1px solid #2c2c2a; border-radius: 12px; padding: 16px 18px;}
-.dne-card.accent {border-color: #3987e5; box-shadow: 0 0 0 1px #3987e5 inset;}
-.dne-label {font-size: 0.78rem; font-weight: 500; color: #898781; text-transform: uppercase;
+.dne-card {background: #16121f; border: 1px solid #2a2338; border-radius: 12px; padding: 16px 18px;}
+.dne-card.accent {border-color: #8b5cf6; box-shadow: 0 0 0 1px #8b5cf6 inset, 0 0 28px rgba(139,92,246,0.22);}
+.dne-label {font-size: 0.78rem; font-weight: 500; color: #847b97; text-transform: uppercase;
   letter-spacing: 0.05em;}
-.dne-value {font-size: 1.75rem; font-weight: 650; color: #f0efec; margin-top: 4px;
+.dne-value {font-size: 1.75rem; font-weight: 650; color: #ede9f7; margin-top: 4px;
   letter-spacing: -0.02em;}
 .dne-value.sm {font-size: 1.35rem;}
-.dne-meta {font-size: 0.85rem; color: #c3c2b7; margin-top: 4px;}
+.dne-meta {font-size: 0.85rem; color: #b6aec8; margin-top: 4px;}
 .dne-pill {display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px;
-  border-radius: 999px; font-size: 0.8rem; font-weight: 500; border: 1px solid #383835;
-  background: #232322; color: #c3c2b7;}
+  border-radius: 999px; font-size: 0.8rem; font-weight: 500; border: 1px solid #342c46;
+  background: #1f1a2b; color: #b6aec8;}
 .dne-pill.good {background: #142a14; border-color: #1f4d1f; color: #5fd35f;}
 .dne-pill.bad {background: #331717; border-color: #5c2424; color: #f08a8a;}
-.dne-pill.info {background: #15243a; border-color: #1f3f69; color: #86b6ef;}
+.dne-pill.info {background: #211a3a; border-color: #3b2f6b; color: #c4bbf7;}
 .dne-dot {display: inline-block; width: 10px; height: 10px; border-radius: 50%;}
 .dne-bar {display: flex; gap: 2px; height: 12px; border-radius: 6px; overflow: hidden;
   margin: 10px 0 8px 0;}
 .dne-bar > div:first-child {border-radius: 6px 0 0 6px;}
 .dne-bar > div:last-child {border-radius: 0 6px 6px 0;}
-.dne-legend {display: flex; gap: 18px; font-size: 0.85rem; color: #c3c2b7; flex-wrap: wrap;}
+.dne-legend {display: flex; gap: 18px; font-size: 0.85rem; color: #b6aec8; flex-wrap: wrap;}
 .dne-table {width: 100%; border-collapse: collapse; font-size: 0.9rem;
   font-variant-numeric: tabular-nums;}
-.dne-table th {text-align: right; font-weight: 500; color: #898781; font-size: 0.78rem;
+.dne-table th {text-align: right; font-weight: 500; color: #847b97; font-size: 0.78rem;
   text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 8px;
-  border-bottom: 1px solid #2c2c2a;}
-.dne-table td {text-align: right; padding: 9px 8px; border-bottom: 1px solid #232322; color: #f0efec;}
+  border-bottom: 1px solid #2a2338;}
+.dne-table td {text-align: right; padding: 9px 8px; border-bottom: 1px solid #1f1a2b; color: #ede9f7;}
 .dne-table th:first-child, .dne-table td:first-child {text-align: left;}
 .dne-table tr:last-child td {border-bottom: none;}
-.dne-footer {margin-top: 36px; padding-top: 14px; border-top: 1px solid #2c2c2a;
-  font-size: 0.8rem; color: #898781;}
+.dne-footer {margin-top: 36px; padding-top: 14px; border-top: 1px solid #2a2338;
+  font-size: 0.8rem; color: #847b97;}
 [data-testid="stMarkdownContainer"]:has(> .dne-note) {margin-bottom: 0;}
 </style>
 """
@@ -173,17 +178,22 @@ def style_fig(fig, height):
         height=height, margin=dict(l=8, r=8, t=8, b=8),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family=FONT, size=12, color=INK_2),
-        hoverlabel=dict(bgcolor="#232322", bordercolor="#383835", font=dict(family=FONT, color=INK)),
+        hoverlabel=dict(bgcolor="#1f1a2b", bordercolor="#342c46", font=dict(family=FONT, color=INK)),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
                     font=dict(size=12, color=INK_2), title_text=""),
     )
-    fig.update_xaxes(gridcolor=GRID, linecolor=AXIS, zeroline=False, tickfont=dict(color=MUTED))
-    fig.update_yaxes(gridcolor=GRID, linecolor=AXIS, zeroline=False, tickfont=dict(color=MUTED))
+    # Static view: dragging must not zoom or pan (there is no visible way to reset it).
+    fig.update_layout(dragmode=False)
+    fig.update_xaxes(gridcolor=GRID, linecolor=AXIS, zeroline=False, tickfont=dict(color=MUTED),
+                     fixedrange=True)
+    fig.update_yaxes(gridcolor=GRID, linecolor=AXIS, zeroline=False, tickfont=dict(color=MUTED),
+                     fixedrange=True)
     return fig
 
 
 def show(fig):
-    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+    st.plotly_chart(fig, width="stretch",
+                    config={"displayModeBar": False, "scrollZoom": False, "doubleClick": False})
 
 
 def network_figure(graph, label_of, degree_of, centre=None, height=460):
@@ -198,17 +208,17 @@ def network_figure(graph, label_of, degree_of, centre=None, height=460):
     for cls, colour in CLASS_COLOURS.items():
         nodes = [v for v in graph.nodes if label_of[v] == cls and v != centre]
         fig.add_trace(go.Scatter(
-            x=[pos[v][0] for v in nodes], y=[pos[v][1] for v in nodes], mode="markers", name=cls,
-            marker=dict(size=10, color=colour, line=dict(color="#1a1a19", width=1.5)),
+            x=[pos[v][0] for v in nodes], y=[pos[v][1] for v in nodes], mode="markers", name=CLASS_LABELS[cls],
+            marker=dict(size=10, color=colour, line=dict(color="#16121f", width=1.5)),
             customdata=[[v, degree_of(v)] for v in nodes],
-            hovertemplate=f"<b>Developer %{{customdata[0]}}</b><br>Recorded label: {cls}"
+            hovertemplate=f"<b>Developer %{{customdata[0]}}</b><br>Recorded label: {CLASS_LABELS[cls]}"
                           "<br>Connections: %{customdata[1]:,}<extra></extra>"))
     if centre is not None:
         fig.add_trace(go.Scatter(
-            x=[pos[centre][0]], y=[pos[centre][1]], mode="markers+text", name="selected developer",
+            x=[pos[centre][0]], y=[pos[centre][1]], mode="markers+text", name="Selected developer",
             text=[f"<b>{centre}</b>"], textposition="top center", textfont=dict(color=INK, size=12),
             marker=dict(size=24, color=CLASS_COLOURS[label_of[centre]], line=dict(color=INK, width=2)),
-            hovertemplate=f"<b>Developer {centre}</b><br>Recorded label: {label_of[centre]}"
+            hovertemplate=f"<b>Developer {centre}</b><br>Recorded label: {CLASS_LABELS[label_of[centre]]}"
                           f"<br>Connections: {degree_of(centre):,}<extra></extra>"))
     style_fig(fig, height)
     fig.update_xaxes(visible=False)
@@ -222,7 +232,7 @@ def network_overview():
     dst, start = load_neighbours()
     hero("MUSAE GitHub dataset", "Network overview",
          "A graph of GitHub developers linked by mutual follows. Each developer is recorded as a "
-         "<b>web</b> or <b>machine learning</b> developer. All figures below are read from the "
+         "<b>Web</b> or <b>machine learning (ML)</b> developer. All figures below are read from the "
          "loaded data files.")
 
     card_row([
@@ -236,7 +246,7 @@ def network_overview():
     left, right = st.columns([1, 1.15], gap="medium")
     with left, st.container(border=True):
         section("Class balance", "Share of developers by recorded label.")
-        html(proportion_bar([(k, v, CLASS_COLOURS[k]) for k, v in
+        html(proportion_bar([(CLASS_LABELS[k], v, CLASS_COLOURS[k]) for k, v in
                              sorted(counts.items(), key=lambda kv: -kv[1])]))
         html(f'<div class="dne-note" style="margin-top:14px">The classes are imbalanced, so the '
              f'model comparison reports <b>macro-F1</b>, which weights both classes equally, '
@@ -249,7 +259,7 @@ def network_overview():
             f"<td>{c['total'] / metadata['num_nodes']:.0%}</td></tr>"
             for name, c in metadata["split_counts"].items())
         html(f'<table class="dne-table"><tr><th>Split</th><th>Total</th>'
-             f'<th>{dot(CLASS_COLOURS["web"])} web</th><th>{dot(CLASS_COLOURS["ml"])} ml</th>'
+             f'<th>{dot(CLASS_COLOURS["web"])} Web</th><th>{dot(CLASS_COLOURS["ml"])} ML</th>'
              f'<th>Share</th></tr>{rows}</table>')
 
     with st.container(border=True):
@@ -322,17 +332,17 @@ def developer_explorer():
 
     html(f'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 0 12px 0">'
          f'<span class="dne-title" style="font-size:1.5rem">Developer {node}</span>'
-         f'<span class="dne-pill">{dot(CLASS_COLOURS[truth])} Recorded label: <b>{truth}</b></span>'
+         f'<span class="dne-pill">{dot(CLASS_COLOURS[truth])} Recorded label: <b>{CLASS_LABELS[truth]}</b></span>'
          f'<span class="dne-pill info">{n_right} of {len(guesses)} models correct</span>'
          f'<span class="dne-pill">{"Models agree" if agree else "Models disagree"}</span></div>')
 
-    cards = [card("Recorded label", f'{dot(CLASS_COLOURS[truth])} {truth}',
+    cards = [card("Recorded label", f'{dot(CLASS_COLOURS[truth])} {CLASS_LABELS[truth]}',
                   "from the dataset", small=True)]
     for m, guess in guesses.items():
         ok = guess == truth
         status = ('<span class="dne-pill good">✓ Correct</span>' if ok
                   else '<span class="dne-pill bad">✕ Incorrect</span>')
-        cards.append(card(MODEL_NAMES[m], f'{dot(CLASS_COLOURS[guess])} {guess}',
+        cards.append(card(MODEL_NAMES[m], f'{dot(CLASS_COLOURS[guess])} {CLASS_LABELS[guess]}',
                           f'<div style="display:flex;justify-content:space-between;align-items:center;'
                           f'gap:8px;margin-top:4px"><span>{MODEL_USES[m]}</span>{status}</div>',
                           small=True))
@@ -369,9 +379,9 @@ def developer_explorer():
         html(card("Connections", f"{total:,}", "mutual followers"))
         html(f'<div class="dne-card" style="margin-top:14px"><div class="dne-label">Neighbour labels'
              f'</div><div class="dne-value">{n_ml / total:.0%} <span style="font-size:1rem;'
-             f'font-weight:500;color:{INK_2}">ml</span></div>'
-             + proportion_bar([("web", total - n_ml, CLASS_COLOURS["web"]),
-                               ("ml", n_ml, CLASS_COLOURS["ml"])]) + "</div>")
+             f'font-weight:500;color:{INK_2}">ML</span></div>'
+             + proportion_bar([("Web", total - n_ml, CLASS_COLOURS["web"]),
+                               ("ML", n_ml, CLASS_COLOURS["ml"])]) + "</div>")
         html('<div class="dne-note" style="margin-top:14px">This picture is context, not an '
              'explanation of any prediction. The GCN uses the full graph, including neighbours '
              'of neighbours.</div>')
@@ -412,14 +422,14 @@ def model_comparison():
     with st.container(border=True):
         h_l, h_r = st.columns([2, 1.3], vertical_alignment="bottom")
         with h_l:
-            section("Per-class results", "Recall for ml is the share of ML developers a model found.")
+            section("Per-class results", "Recall for ML is the share of ML developers a model found.")
         with h_r:
             metric = st.segmented_control("Metric", ["F1", "Precision", "Recall"], default="Recall",
                                           label_visibility="collapsed") or "Recall"
         rows = []
         for m in models:
             for cls, v in metrics[m]["test"]["per_class"].items():
-                rows.append({"Model": MODEL_NAMES[m], "key": m, "Class": cls,
+                rows.append({"Model": MODEL_NAMES[m], "key": m, "Class": CLASS_LABELS[cls],
                              "Precision": v["precision"], "Recall": v["recall"], "F1": v["f1"],
                              "Support": v["support"]})
         per_class = pd.DataFrame(rows)
@@ -428,7 +438,7 @@ def model_comparison():
             d = per_class[per_class["key"] == m]
             fig.add_trace(go.Bar(
                 x=d["Class"], y=d[metric], name=MODEL_NAMES[m], marker_color=MODEL_COLOURS[m],
-                marker_line=dict(color="#1a1a19", width=2), marker_cornerradius=4,
+                marker_line=dict(color="#16121f", width=2), marker_cornerradius=4,
                 text=[f"{v:.2f}" for v in d[metric]], textposition="outside",
                 textfont=dict(color=INK_2, size=11), cliponaxis=False,
                 hovertemplate=f"<b>{MODEL_NAMES[m]}</b><br>Class %{{x}}<br>{metric}: "
@@ -454,12 +464,12 @@ def model_comparison():
         cm = np.array(metrics[m]["test"]["confusion_matrix"])
         order = metrics[m]["test"]["class_order"]
         row_share = cm / cm.sum(axis=1, keepdims=True)
-        text = [[f"<b>{cm[i, j]:,}</b><br>{row_share[i, j]:.0%} of true {order[i]}"
+        text = [[f"<b>{cm[i, j]:,}</b><br>{row_share[i, j]:.0%} of true {CLASS_LABELS[order[i]]}"
                  for j in range(len(order))] for i in range(len(order))]
         fig = go.Figure(go.Heatmap(
-            z=row_share, x=[f"predicted {c}" for c in order], y=[f"true {c}" for c in order],
-            colorscale=BLUES, zmin=0, zmax=1, showscale=False, xgap=3, ygap=3,
-            text=text, texttemplate="%{text}", textfont=dict(size=13),
+            z=row_share, x=[f"Predicted {CLASS_LABELS[c]}" for c in order], y=[f"True {CLASS_LABELS[c]}" for c in order],
+            colorscale=SEQ, zmin=0, zmax=1, showscale=False, xgap=3, ygap=3,
+            text=text, texttemplate="%{text}", textfont=dict(size=13, color=INK),
             customdata=cm, hovertemplate="%{y} → %{x}<br>%{customdata:,} developers<extra></extra>"))
         style_fig(fig, 320)
         fig.update_yaxes(autorange="reversed", showgrid=False, tickfont=dict(color=INK, size=12))
@@ -490,7 +500,7 @@ def model_comparison():
                     b = h.loc[h[col].idxmax()]
                     fig.add_trace(go.Scatter(
                         x=[b["epoch"]], y=[b[col]], mode="markers", showlegend=False,
-                        marker=dict(size=9, color=MODEL_COLOURS[key], line=dict(color="#1a1a19", width=2)),
+                        marker=dict(size=9, color=MODEL_COLOURS[key], line=dict(color="#16121f", width=2)),
                         hovertemplate=f"<b>{MODEL_NAMES[key]} best epoch</b> %{{x}}<br>"
                                       "Validation macro-F1: %{y:.3f}<extra></extra>"))
             style_fig(fig, 262)

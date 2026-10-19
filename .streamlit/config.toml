@@ -1,16 +1,18 @@
 [theme]
 base = "dark"
-primaryColor = "#3987e5"
-backgroundColor = "#111110"
-secondaryBackgroundColor = "#1a1a19"
-textColor = "#f0efec"
-font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-borderColor = "#2c2c2a"
+primaryColor = "#8b5cf6"
+backgroundColor = "#0b0910"
+secondaryBackgroundColor = "#16121f"
+textColor = "#ede9f7"
+font = "Manrope:https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+headingFont = "Space Grotesk:https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap"
+borderColor = "#2a2338"
 showWidgetBorder = true
 baseRadius = "10px"
+linkColor = "#b4a9f5"
 
 [theme.sidebar]
-backgroundColor = "#1a1a19"
+backgroundColor = "#16121f"
 
 [client]
 toolbarMode = "minimal"
