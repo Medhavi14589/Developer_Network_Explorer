@@ -147,66 +147,17 @@ Developer_Network_Explorer/
 
 ---
 
-## 4. Work division
 
-| Member | Registration | Primary ownership |
-| --- | --- | --- |
-| **Shreyas** | 240905118 | Environment and `requirements.txt`, data pipeline, split and metadata, logistic regression, node-alignment checks |
-| **Medhavi** | 240905122 | MLP and GCN training, validation and checkpointing, training-history export, training and checkpoint-loading checks |
-| **Abhyuday** | 240905036 | Evaluation module, Streamlit app (three views), integration with saved outputs, report and slides assembly |
-
-### Time budget (9 hours each, 27 total)
-
-| Activity | Shreyas | Medhavi | Abhyuday |
-| --- | --- | --- | --- |
-| Setup and contracts | 1 h | 1 h | 1 h |
-| Data and splits | 2 h | - | - |
-| Logistic regression | 2 h | - | - |
-| MLP | - | 1.5 h | - |
-| GCN | - | 2.5 h | - |
-| Validation and export | - | 1.5 h | - |
-| Evaluation module | - | - | 1 h |
-| Application | - | - | 3 h |
-| Integration | 1.5 h | - | 1.5 h |
-| Documentation and rehearsal | 2.5 h | 2.5 h | 2.5 h |
-
-### Handoffs
-
-| Day | Shreyas | Medhavi | Abhyuday |
-| --- | --- | --- | --- |
-| 2 | Graph, masks, metadata | - | Evaluator and app skeleton |
-| 3 | Baseline predictions | Working neural runs | App reads real baseline outputs |
-| 4 | - | Checkpoints and histories | Integrated three views |
-| 6 | Setup and data report sections | Model and training report sections | Assembled report and slides |
-
-### Seven-day schedule
-
-| Day | Hours each | Team target |
-| --- | --- | --- |
-| 1 | 1 | Agree contracts, install environment, load real data, check GCN memory |
-| 2 | 1.5 | Save split and metadata; build neural loop, evaluator and app skeleton in parallel |
-| 3 | 1.5 | All models complete an initial run; app reads real baseline outputs |
-| 4 | 1.5 | Integrate all three model outputs and all three views |
-| 5 | 1 | Fix issues, freeze configurations, evaluate test set, export final bundle |
-| 6 | 1.5 | README, short report, figures, about 6-8 slides |
-| 7 | 1 | Reproduce startup from a clean environment; rehearse the demo |
-
-### Working rules
-
-- Agree on field names before writing separate code.
-- Commit small working increments; avoid editing the same file at the same time.
-- **Cross-review:** Shreyas checks node alignment, Medhavi checks training and checkpoint loading, Abhyuday checks displayed numbers against `metrics.json`.
-- Post a short progress update after each work session and flag blocked handoffs immediately.
 
 ---
 
-## 5. Scope
+## 4. Scope
 
 | Required | Optional (only after required work is done) | Deferred |
 | --- | --- | --- |
 | All three models, all three views, reproducible results, local demo | CSV download button, visual polish | Cloud hosting, live GitHub API, login, database, Facebook data, GraphSAGE, large tuning searches |
 
-## 6. Definition of done
+## 5. Definition of done
 
 - The app launches from the documented instructions and all three views work with real saved outputs.
 - All models use identical masks; test labels never influence fitting or settings.
@@ -215,7 +166,7 @@ Developer_Network_Explorer/
 - No fabricated performance numbers; the report states results come from one split and seed.
 - Every member can explain their component and one limitation.
 
-## 7. Setup and usage
+## 6. Setup and usage
 
 Tested on Windows with Python 3.14. Exact package versions are pinned in `requirements.txt`.
 
@@ -250,7 +201,7 @@ streamlit run app.py
 python evaluate.py --table
 ```
 
-## 8. Limitations
+## 7. Limitations
 
 - The application uses a fixed historical dataset and does not analyze arbitrary live GitHub usernames.
 - The two dataset categories simplify developers' interests and are not a comprehensive description of their skills.
@@ -261,11 +212,11 @@ python evaluate.py --table
 - Features are our own 128-dimensional SVD compression of the raw attributes, so results are not directly comparable with papers that use other feature preprocessing.
 - Research extensions such as GraphSAGE, multiple datasets, and robustness experiments are outside the initial one-week scope.
 
-## 9. Future extensions
+## 8. Future extensions
 
 Repeated splits, GraphSAGE, Facebook or another verified dataset, label-scarcity studies, and missing-edge experiments. This one-week deliverable makes no novelty or cross-network transfer claims.
 
-## 10. References
+## 9. References
 
 - [MUSAE raw data and code (dataset authors)](https://github.com/benedekrozemberczki/musae)
 - [Rozemberczki, Allen, and Sarkar: Multi-scale Attributed Node Embedding](https://arxiv.org/abs/1909.13021)
